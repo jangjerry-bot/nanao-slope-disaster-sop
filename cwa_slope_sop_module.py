@@ -23,7 +23,7 @@ def inject_custom_style_and_banner():
             font-size: 18px !important;
         }
         .block-container {
-            padding-top: 1rem !important;
+            padding-top: 2rem !important; /* 增加頂部安全距離，避免被頁面頂端裁切 */
             padding-bottom: 3rem !important;
             max-width: 960px !important;
         }
@@ -44,7 +44,7 @@ def inject_custom_style_and_banner():
             color: #cbd5e1 !important;
         }
 
-        /* 開頭動態視覺橫幅動畫 (Keyframes) */
+        /* 動態視覺橫幅動畫 (Keyframes) */
         @keyframes gradientBG {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
@@ -71,9 +71,10 @@ def inject_custom_style_and_banner():
             background-size: 300% 300%;
             animation: gradientBG 10s ease infinite, slideDownFade 0.7s ease-out;
             border-radius: 18px;
-            padding: 22px 20px;
+            padding: 28px 22px 22px 22px; /* 增加上方 padding，徹底解決卡字問題 */
             border: 1px solid rgba(56, 189, 248, 0.35);
             box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.6);
+            margin-top: 15px; /* 增加與頂部的距離 */
             margin-bottom: 18px;
         }
         .hero-banner::after {
@@ -109,7 +110,7 @@ def inject_custom_style_and_banner():
             font-weight: 900 !important;
             color: #ffffff !important;
             line-height: 1.3 !important;
-            margin: 0 0 8px 0 !important;
+            margin: 0 0 10px 0 !important;
             letter-spacing: 0.5px;
             text-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
@@ -119,7 +120,7 @@ def inject_custom_style_and_banner():
             line-height: 1.45 !important;
             font-weight: 600;
             background: rgba(15, 23, 42, 0.55);
-            padding: 8px 12px;
+            padding: 10px 14px;
             border-radius: 10px;
             border-left: 4px solid #38bdf8;
         }
@@ -172,7 +173,7 @@ def inject_custom_style_and_banner():
         </div>
         <div class="hero-title">蘇花廊道災變暨邊坡巡查自動化決策系統</div>
         <div class="hero-subtitle">
-            法規依據：公路局路養護字第1155009531號函(115年5月修訂)｜雨量分析邏輯：採用【區域測站群組最大值包絡法】
+            法規依據：路養護字第1155009531號函(115年5月修訂)｜雨量分析邏輯：採用【區域測站群組最大值包絡法】
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -488,7 +489,7 @@ def render_app():
     df_stations, df_envelope = fetch_cwa_rainfall_and_envelope(api_key)
     eq_records = fetch_cwa_earthquake(api_key)
 
-    # 2. 手機端核心導覽：全面採用單一下拉式選單 (取代傳統小字體 Tabs)
+    # 2. 手機端核心導覽：全面採用單一下拉式選單
     main_menu = st.selectbox(
         "👇 請選擇功能模組 (下拉切換)：",
         [
@@ -510,7 +511,7 @@ def render_app():
             )
 
     # ==================================================
-    # 模組 1：區域雨量群組包絡看板 (手機大字卡設計)
+    # 模組 1：區域雨量群組包絡看板
     # ==================================================
     if main_menu.startswith("📡 1"):
         reg_filter = st.selectbox(
@@ -553,7 +554,6 @@ def render_app():
                 </div>
                 """, unsafe_allow_html=True)
 
-            # 提供單一防區測站明細下拉檢視
             if reg_filter != "全部五大防區總覽":
                 st.markdown(f"#### 📋 {reg_filter} 各雨量站即時數據")
                 sub_st = df_stations[df_stations["所屬雨量分區"] == reg_filter].sort_values(by="3hr雨量(mm)", ascending=False)
@@ -561,7 +561,6 @@ def render_app():
         else:
             st.warning("⚠️ 無法連線至氣象署 API，請確認網路狀態。")
 
-        # 外部官方查核大按鈕
         st.markdown("""
         <a href="https://www.cwa.gov.tw/V8/C/P/Rainfall/Rainfall_QZJ.html" target="_blank" style="display:block; text-align:center; background:#f59e0b; color:#0f172a; font-weight:900; font-size:1.15rem; padding:14px; border-radius:12px; text-decoration:none; margin-top:10px;">
             🔗 點此開啟：中央氣象署官方即時雨量站網頁
@@ -569,7 +568,7 @@ def render_app():
         """, unsafe_allow_html=True)
 
     # ==================================================
-    # 模組 2：邊坡巡查自動化派工決策 (全下拉式選單 + 重點放大卡)
+    # 模組 2：邊坡巡查自動化派工決策
     # ==================================================
     elif main_menu.startswith("⚙️ 2"):
         drive_mode = st.selectbox(
@@ -599,7 +598,7 @@ def render_app():
             def_seis, def_r3, def_r48, def_col = "0級", 135.0, 380.0, 0
             if sel_ev != "手動輸入測試數值":
                 ev_date = sel_ev.split(" | ")[0]
-                ev_name = sel_ev.split(" | ")[1].split(" (")[0]
+                ev_name = sel_ev.split(" | ")[1].rsplit(" (", 1)[0]
                 row = st.session_state.disaster_db[(st.session_state.disaster_db["date"] == ev_date) & (st.session_state.disaster_db["name"] == ev_name)].iloc[0]
                 def_seis, def_r3, def_r48, def_col = row["max_seismic"], float(row["max_rain_3h"]), float(row["max_rain_48h"]), int(row["collapse_m3"])
 
@@ -615,7 +614,6 @@ def render_app():
         is_deb = "土石流" in sim_scenario
         sim_col = 20000 if "≥ 20,000" in sim_scenario else (5000 if "5,000" in sim_scenario else 0)
 
-        # 篩選邊坡口卡並渲染為手機端大字體決策卡
         slopes_df = st.session_state.slope_db.copy()
         if target_region != "全部轄區邊坡口卡":
             slopes_df = slopes_df[slopes_df["所屬雨量分區"] == target_region]
@@ -674,7 +672,7 @@ def render_app():
             """, unsafe_allow_html=True)
 
     # ==================================================
-    # 模組 3：宜花歷年天災時序查詢 (全下拉式選單 + 時間軸卡片)
+    # 模組 3：宜花歷年天災時序查詢
     # ==================================================
     elif main_menu.startswith("📅 3"):
         df_hist = st.session_state.disaster_db.copy()
@@ -700,20 +698,34 @@ def render_app():
         st.markdown(f"#### 📖 查詢結果：共 {len(df_hist)} 筆宜花天災事件")
         for _, ev in df_hist.iterrows():
             t_color = "#ef4444" if ev["type"] == "地震" else ("#3b82f6" if ev["type"] == "颱風" else "#eab308")
+            
+            # 動態指定氣象署導航網址
+            if ev["type"] == "地震":
+                cwa_link = "https://www.cwa.gov.tw/V8/C/E/index.html"
+            elif ev["type"] == "颱風":
+                cwa_link = "https://www.cwa.gov.tw/V8/C/P/Typhoon/TY_WARN.html"
+            else:
+                cwa_link = "https://www.cwa.gov.tw/V8/C/P/Rainfall/Rainfall_QZJ.html"
+
             st.markdown(f"""
-            <div class="mobile-card" style="border-left: 8px solid {t_color};">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size:1.1rem; font-family:monospace; font-weight:800; color:#94a3b8;">📅 {ev['date']}</span>
-                    <span style="background:{t_color}; color:#ffffff; font-weight:900; font-size:0.9rem; padding:3px 10px; border-radius:99px;">{ev['type']}｜{ev['region']}</span>
+            <a href="{cwa_link}" target="_blank" style="text-decoration:none; display:block; color:inherit; transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="mobile-card" style="border-left: 8px solid {t_color}; cursor:pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:1.1rem; font-family:monospace; font-weight:800; color:#94a3b8;">📅 {ev['date']}</span>
+                        <span style="background:{t_color}; color:#ffffff; font-weight:900; font-size:0.9rem; padding:3px 10px; border-radius:99px;">{ev['type']}｜{ev['region']}</span>
+                    </div>
+                    <div style="font-size:1.35rem; font-weight:900; color:#ffffff; margin: 8px 0;">{ev['name']}</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                        <span style="background:#0f172a; padding:4px 10px; border-radius:8px; font-size:0.95rem; font-weight:700; color:#fca5a5;">震度：{ev['max_seismic']}</span>
+                        <span style="background:#0f172a; padding:4px 10px; border-radius:8px; font-size:0.95rem; font-weight:700; color:#38bdf8;">3hr雨量：{ev['max_rain_3h']}mm</span>
+                        <span style="background:#0f172a; padding:4px 10px; border-radius:8px; font-size:0.95rem; font-weight:700; color:#fbbf24;">48hr雨量：{ev['max_rain_48h']}mm</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                        <div style="font-size:1.05rem; color:#e2e8f0; line-height:1.4; width:85%;">📌 {ev['note']}</div>
+                        <div style="font-size:1.2rem; opacity:0.8;">🔗</div>
+                    </div>
                 </div>
-                <div style="font-size:1.35rem; font-weight:900; color:#ffffff; margin: 8px 0;">{ev['name']}</div>
-                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-                    <span style="background:#0f172a; padding:4px 10px; border-radius:8px; font-size:0.95rem; font-weight:700; color:#fca5a5;">震度：{ev['max_seismic']}</span>
-                    <span style="background:#0f172a; padding:4px 10px; border-radius:8px; font-size:0.95rem; font-weight:700; color:#38bdf8;">3hr雨量：{ev['max_rain_3h']}mm</span>
-                    <span style="background:#0f172a; padding:4px 10px; border-radius:8px; font-size:0.95rem; font-weight:700; color:#fbbf24;">48hr雨量：{ev['max_rain_48h']}mm</span>
-                </div>
-                <div style="font-size:1.05rem; color:#e2e8f0; line-height:1.4;">📌 {ev['note']}</div>
-            </div>
+            </a>
             """, unsafe_allow_html=True)
 
     # ==================================================
