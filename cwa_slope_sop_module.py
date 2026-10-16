@@ -172,7 +172,7 @@ def inject_custom_style_and_banner():
         </div>
         <div class="hero-title">蘇花廊道災變暨邊坡巡查自動化決策系統</div>
         <div class="hero-subtitle">
-            法規依據：115年10月版《養護手冊-路基及邊坡巡查-懶人包》｜雨量分析邏輯：採用【區域測站群組最大值包絡法】
+            法規依據：路養護字第1155009531號函(115年5月修訂)｜雨量分析邏輯：採用【區域測站群組最大值包絡法】
         </div>
     </div>
     """, unsafe_allow_html=True)
