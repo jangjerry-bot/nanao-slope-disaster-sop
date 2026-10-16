@@ -12,9 +12,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # 0. 延續邊坡口卡系統 style.py 之動畫與手機端放大 CSS
 # ==========================================
 def inject_custom_style_and_banner():
-    """
-    注入專為手機端優化的放大字體、高對比毛玻璃卡片，以及開頭動態雷達橫幅 (style.py 風格)
-    """
     st.markdown("""
     <style>
         /* 全域字體與手機端觸控優化 */
@@ -23,12 +20,10 @@ def inject_custom_style_and_banner():
             font-size: 18px !important;
         }
         .block-container {
-            padding-top: 2rem !important; /* 增加頂部安全距離，避免被頁面頂端裁切 */
+            padding-top: 2rem !important;
             padding-bottom: 3rem !important;
             max-width: 960px !important;
         }
-
-        /* 下拉選單 (Selectbox) 與輸入框字體全面放大，方便現場單手操作 */
         div[data-baseweb="select"] > div {
             min-height: 52px !important;
             font-size: 1.15rem !important;
@@ -43,8 +38,6 @@ def inject_custom_style_and_banner():
             font-weight: 700 !important;
             color: #cbd5e1 !important;
         }
-
-        /* 動態視覺橫幅動畫 (Keyframes) */
         @keyframes gradientBG {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
@@ -60,4 +53,21 @@ def inject_custom_style_and_banner():
             100% { opacity: 1; transform: translateY(0); }
         }
         @keyframes scanLine {
-            0% { transform: translateX(-100%);
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .hero-banner {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(-45deg, #0f172a, #1e3a8a, #0f766e, #1e293b);
+            background-size: 300% 300%;
+            animation: gradientBG 10s ease infinite, slideDownFade 0.7s ease-out;
+            border-radius: 18px;
+            padding: 28px 22px 22px 22px;
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.6);
+            margin-top: 15px;
+            margin-bottom: 18px;
+        }
+        .hero-banner::after {
+            content: "";
