@@ -13,9 +13,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # 0. 延續邊坡口卡系統 style.py 之動畫與手機端放大 CSS
 # ==========================================
 def inject_custom_style_and_banner():
-    """
-    注入專為手機端優化的放大字體、高對比毛玻璃卡片，以及開頭動態雷達橫幅
-    """
     st.markdown("""
     <style>
         /* 全域字體與手機端觸控優化 */
@@ -230,7 +227,7 @@ DEFAULT_DISASTER_HISTORY = [
     {"date": "2025-08-13", "type": "颱風", "name": "楊柳颱風外圍環流強降雨", "max_seismic": "0級", "max_rain_3h": 135.0, "max_rain_48h": 390.0, "region": "南澳地區", "collapse_m3": 0, "note": "短延時強降雨突破120mm/3hr，揭露強降雨訊息並於2日內特巡"},
     {"date": "2024-10-31", "type": "颱風", "name": "康芮颱風東部超大豪雨", "max_seismic": "0級", "max_rain_3h": 160.0, "max_rain_48h": 680.0, "region": "和平崇德地區", "collapse_m3": 8500, "note": "海警解除後全線特巡，坍方逾5,000m³路段強制升級比照A級"},
     {"date": "2024-07-24", "type": "颱風", "name": "凱米颱風強降雨致災", "max_seismic": "0級", "max_rain_3h": 185.0, "max_rain_48h": 820.0, "region": "和平崇德地區", "collapse_m3": 25000, "note": "0403震後首個強颱，坍方逾20,000m³，啟動空拍判釋與保全守視"},
-    {"date": "2024-04-23", "type": "地震", "name": "0423 花蓮壽豐群震 (M6.3)", "max_seismic": "5強", "max_rain_3h": 45.0, "max_rain_48h": 110.0, "region": "和平崇德地區", "collapse_m3": 3000, "note": "震度達5強，觸發A、B、C、E類橋梁特別檢測與邊坡立即巡查"},
+    {"date": "2024-04-23", "type": "地震", "name": "0423 花蓮壽豐群震 (M6.3)", "max_seismic": "5強", "max_rain_3h": 45.0, "max_rain_48h": 110.0, "region": "和平崇德地區", "collapse_m3": 3000, "note": "震度達5強，觸發A, B, C, E類橋梁特別檢測與邊坡立即巡查"},
     {"date": "2024-04-03", "type": "地震", "name": "0403 花蓮大地震 (M7.2)", "max_seismic": "6強", "max_rain_3h": 15.0, "max_rain_48h": 30.0, "region": "和平崇德地區", "collapse_m3": 35000, "note": "成立大規模震災緊急應變小組，全線橋梁特檢、A~C級邊坡7日內特檢+朝巡1週+空拍"},
 ]
 
@@ -394,7 +391,7 @@ def evaluate_slope_sop(slope_grade, is_rhrs_high, seismic_str, rain_3h, rain_48h
         insp_actions.append("🚨【震度5弱】立即巡查公路構造物、邊坡、特別照護喬木")
     elif s_rank == 6:
         insp_actions.append("🚨【震度5強】立即巡查構造物、邊坡、特別照護喬木")
-        bridge_actions.append("🌉【震度5強】立即巡查橋梁，並特別檢測 A、B、C、E 類橋梁")
+        bridge_actions.append("🌉【震度5強】立即巡查橋梁，並特別檢測 A, B, C, E 類橋梁")
     elif s_rank >= 7:
         mgmt_actions.append("🚨【震度6弱以上】成立「大規模震災」緊急應變小組 (處置6)")
         bridge_actions.append("🌉【震度6弱以上】立即辦理震區內「所有橋梁」特別檢測")
@@ -511,7 +508,7 @@ def render_app():
     df_stations, df_envelope = fetch_cwa_rainfall_and_envelope(api_key)
     eq_records = fetch_cwa_earthquake(api_key)
 
-    # 主選單調換順序，將「歷年天災」往前放
+    # 主選單調換順序：將「宜花歷年天災」設為第 2 項
     main_menu = st.selectbox(
         "👇 請選擇功能模組 (下拉切換)：",
         [
@@ -584,8 +581,8 @@ def render_app():
 
         st.markdown("""
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
-            <a href="https://www.cwa.gov.tw/V8/C/P/Rainfall/Rainfall_QZJ.html" target="_blank" style="display:block; text-align:center; background:#f59e0b; color:#0f172a; font-weight:900; font-size:1.05rem; padding:14px 8px; border-radius:12px; text-decoration:none;">
-                🌧️ 氣象署即時雨量排行
+            <a href="https://www.cwa.gov.tw/V8/C/" target="_blank" style="display:block; text-align:center; background:#f59e0b; color:#0f172a; font-weight:900; font-size:1.05rem; padding:14px 8px; border-radius:12px; text-decoration:none;">
+                🌧️ 中央氣象署 (CWA)
             </a>
             <a href="https://watch.ncdr.nat.gov.tw/watch_histracks" target="_blank" style="display:block; text-align:center; background:#38bdf8; color:#0f172a; font-weight:900; font-size:1.05rem; padding:14px 8px; border-radius:12px; text-decoration:none;">
                 🌪️ NCDR 災防科技中心
@@ -594,13 +591,12 @@ def render_app():
         """, unsafe_allow_html=True)
 
     # ==================================================
-    # 模組 2：宜花歷年天災時序查詢 (精準雙連結配置)
+    # 模組 2：宜花歷年天災時序查詢 (近10年年份 + 精準站內檢索注入)
     # ==================================================
     elif main_menu.startswith("📅 2"):
         df_hist = st.session_state.disaster_db.copy()
         df_hist["year"] = df_hist["date"].str.slice(0, 4)
 
-        # 動態生成近 10 年的年份選項清單
         current_yr = datetime.now().year
         last_10_years = [str(y) for y in range(current_yr, current_yr - 10, -1)]
         all_years = sorted(list(set(df_hist["year"].unique().tolist() + last_10_years)), reverse=True)
@@ -623,18 +619,21 @@ def render_app():
         df_hist = df_hist.sort_values(by="date", ascending=("由舊到新" in sort_dir))
 
         st.markdown(f"#### 📖 查詢結果：共 {len(df_hist)} 筆宜花天災事件")
-        
-        # 使用者指定之直接對應網頁
-        cwa_url = "https://www.cwa.gov.tw/V8/C/"
-        ncdr_url = "https://watch.ncdr.nat.gov.tw/watch_histracks"
 
         for _, ev in df_hist.iterrows():
             t_color = "#ef4444" if ev["type"] == "地震" else ("#3b82f6" if ev["type"] == "颱風" else "#eab308")
 
-            # 點擊事件名稱直接前往氣象署，或透過按鈕選擇
+            date_str = ev['date']
+            yr, md = date_str[:4], date_str[5:]
+            kw_name = quote(ev['name'])
+            kw_reg = quote(ev['region'])
+            
+            cwa_smart_url = f"https://www.google.com/search?q=site:cwa.gov.tw+%22{yr}%22+%22{md}%22+{kw_name}+{kw_reg}"
+            ncdr_smart_url = f"https://www.google.com/search?q=site:ncdr.nat.gov.tw+%22{yr}%22+%22{md}%22+{kw_name}+{kw_reg}"
+
             st.markdown(f"""
             <div class="mobile-card" style="border-left: 8px solid {t_color}; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-                <a href="{cwa_url}" target="_blank" style="text-decoration:none; color:inherit; display:block;">
+                <a href="{cwa_smart_url}" target="_blank" style="text-decoration:none; color:inherit; display:block;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-size:1.1rem; font-family:monospace; font-weight:800; color:#94a3b8;">📅 {ev['date']}</span>
                         <span style="background:{t_color}; color:#ffffff; font-weight:900; font-size:0.9rem; padding:3px 10px; border-radius:99px;">{ev['type']}｜{ev['region']}</span>
@@ -652,10 +651,10 @@ def render_app():
                     </div>
                 </a>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
-                    <a href="{cwa_url}" target="_blank" class="link-btn">
+                    <a href="{cwa_smart_url}" target="_blank" class="link-btn" title="利用 Google 站內檢索氣象署歷史報告">
                         🔍 中央氣象署 (CWA)
                     </a>
-                    <a href="{ncdr_url}" target="_blank" class="link-btn-sec">
+                    <a href="{ncdr_smart_url}" target="_blank" class="link-btn-sec" title="利用 Google 站內檢索災防中心軌跡">
                         🌪️ NCDR 災防科技中心
                     </a>
                 </div>
