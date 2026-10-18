@@ -223,31 +223,6 @@ REGIONAL_GROUPS = {
 SEISMIC_RANK = {"0級": 0, "1級": 1, "2級": 2, "3級": 3, "4級": 4, "5弱": 5, "5強": 6, "6弱": 7, "6強": 8, "7級": 9}
 RANK_TO_SEISMIC = {v: k for k, v in SEISMIC_RANK.items()}
 
-def build_event_links(ev_type: str, ev_date: str, ev_name: str, ev_region: str):
-    """
-    針對每一筆歷史天災事件，產生兩個 100% 有效且精準的連結：
-    1. primary_url: 直接調閱該次特定事件(如康芮颱風、凱米颱風、0403地震)於中央氣象署與防災專網之官方報告與雨量極值圖表。
-    2. cwa_db_url: 中央氣象署現行有效之官方歷史查詢系統 (CODiS 氣候資料服務系統 / 颱風資料庫 / 地震中心)。
-    """
-    clean_query = f"中央氣象署 {ev_date[:4]}年 {ev_name} {ev_region} 雨量 震度 報告"
-    primary_url = f"https://www.google.com/search?q={quote(clean_query)}"
-    
-    if ev_type == "地震":
-        # 氣象署地震測報中心 - 全球資訊網首頁與歷史地震查詢 (真實有效網址)
-        cwa_db_url = "https://scweb.cwa.gov.tw/"
-        db_btn_label = "🌋 氣象署地震測報中心"
-    elif ev_type == "颱風":
-        # 氣象署颱風資料庫 - 歷年颱風警報單與路徑雨量系統 (真實有效網址)
-        cwa_db_url = "https://rdc28.cwa.gov.tw/TDB/public/warning_typhoon_list/"
-        db_btn_label = "🌀 氣象署歷年颱風清單"
-    else:
-        # 氣象署新版 CODiS 氣候資料服務系統 (取代已廢止之舊版 e-service，可查各雨量站歷史逐時雨量)
-        cwa_db_url = "https://codis.cwa.gov.tw/StationData"
-        db_btn_label = "🌧️ 氣象署CODiS歷史雨量站"
-        
-    return primary_url, cwa_db_url, db_btn_label
-
-
 DEFAULT_DISASTER_HISTORY = [
     {"date": "2026-09-20", "type": "地震", "name": "0920 南澳外海地震 (M5.6)", "max_seismic": "4級", "max_rain_3h": 0.0, "max_rain_48h": 10.0, "region": "南澳地區", "collapse_m3": 0, "note": "震度達4級，觸發優先關注邊坡(RHRS中高風險)立即巡查"},
     {"date": "2026-05-12", "type": "豪雨", "name": "0512 梅雨滯留鋒面劇烈豪雨", "max_seismic": "0級", "max_rain_3h": 130.0, "max_rain_48h": 365.0, "region": "東澳地區", "collapse_m3": 0, "note": "115年汛期首波達標豪雨，東澳嶺3hr與48hr雙雙突破門檻"},
@@ -389,8 +364,7 @@ def fetch_cwa_earthquake(api_key: str) -> list:
                 "發震時間": info.get("OriginTime", ""),
                 "震央位置": info.get("Epicenter", {}).get("Location", ""),
                 "規模": info.get("EarthquakeMagnitude", {}).get("MagnitudeValue", ""),
-                "宜花最大震度": RANK_TO_SEISMIC.get(max_rank, "0級"),
-                "官方報告連結": eq.get("Web", "https://scweb.cwa.gov.tw/")
+                "宜花最大震度": RANK_TO_SEISMIC.get(max_rank, "0級")
             })
         return parsed
     except Exception:
@@ -537,12 +511,13 @@ def render_app():
     df_stations, df_envelope = fetch_cwa_rainfall_and_envelope(api_key)
     eq_records = fetch_cwa_earthquake(api_key)
 
+    # 主選單調換順序，將「歷年天災」往前放
     main_menu = st.selectbox(
         "👇 請選擇功能模組 (下拉切換)：",
         [
             "📡 1. 區域雨量群組包絡看板 (即時重點放大)",
-            "⚙️ 2. 邊坡巡查自動化派工決策 (下拉篩選)",
-            "📅 3. 宜花歷年天災時序查詢 (地震/颱風/豪雨)",
+            "📅 2. 宜花歷年天災時序查詢 (地震/颱風/豪雨)",
+            "⚙️ 3. 邊坡巡查自動化派工決策 (下拉篩選)",
             "📉 4. 115年修訂：A級邊坡降等資格檢核"
         ]
     )
@@ -612,16 +587,85 @@ def render_app():
             <a href="https://www.cwa.gov.tw/V8/C/P/Rainfall/Rainfall_QZJ.html" target="_blank" style="display:block; text-align:center; background:#f59e0b; color:#0f172a; font-weight:900; font-size:1.05rem; padding:14px 8px; border-radius:12px; text-decoration:none;">
                 🌧️ 氣象署即時雨量排行
             </a>
-            <a href="https://codis.cwa.gov.tw/StationData" target="_blank" style="display:block; text-align:center; background:#38bdf8; color:#0f172a; font-weight:900; font-size:1.05rem; padding:14px 8px; border-radius:12px; text-decoration:none;">
-                📊 氣象署CODiS測站查詢
+            <a href="https://watch.ncdr.nat.gov.tw/watch_histracks" target="_blank" style="display:block; text-align:center; background:#38bdf8; color:#0f172a; font-weight:900; font-size:1.05rem; padding:14px 8px; border-radius:12px; text-decoration:none;">
+                🌪️ NCDR 災防科技中心
             </a>
         </div>
         """, unsafe_allow_html=True)
 
     # ==================================================
-    # 模組 2：邊坡巡查自動化派工決策
+    # 模組 2：宜花歷年天災時序查詢 (精準雙連結配置)
     # ==================================================
-    elif main_menu.startswith("⚙️ 2"):
+    elif main_menu.startswith("📅 2"):
+        df_hist = st.session_state.disaster_db.copy()
+        df_hist["year"] = df_hist["date"].str.slice(0, 4)
+
+        # 動態生成近 10 年的年份選項清單
+        current_yr = datetime.now().year
+        last_10_years = [str(y) for y in range(current_yr, current_yr - 10, -1)]
+        all_years = sorted(list(set(df_hist["year"].unique().tolist() + last_10_years)), reverse=True)
+
+        c1, c2 = st.columns(2)
+        sel_year = c1.selectbox("📅 1. 下拉選擇查詢年份：", ["全部歷年紀錄"] + all_years)
+        sel_type = c2.selectbox("🌪️ 2. 下拉選擇災害類別：", ["全部災別 (地震/颱風/豪雨)", "地震", "颱風", "豪雨"])
+        
+        c3, c4 = st.columns(2)
+        sel_reg_h = c3.selectbox("📍 3. 下拉篩選受災分區：", ["全部宜花防區"] + list(REGIONAL_GROUPS.keys()))
+        sort_dir = c4.selectbox("⏳ 4. 日期排序方式：", ["日期：由新到舊 (最新優先)", "日期：由舊到新 (時間先後順序)"])
+
+        if sel_year != "全部歷年紀錄":
+            df_hist = df_hist[df_hist["year"] == sel_year]
+        if sel_type != "全部災別 (地震/颱風/豪雨)":
+            df_hist = df_hist[df_hist["type"] == sel_type]
+        if sel_reg_h != "全部宜花防區":
+            df_hist = df_hist[df_hist["region"] == sel_reg_h]
+
+        df_hist = df_hist.sort_values(by="date", ascending=("由舊到新" in sort_dir))
+
+        st.markdown(f"#### 📖 查詢結果：共 {len(df_hist)} 筆宜花天災事件")
+        
+        # 使用者指定之直接對應網頁
+        cwa_url = "https://www.cwa.gov.tw/V8/C/"
+        ncdr_url = "https://watch.ncdr.nat.gov.tw/watch_histracks"
+
+        for _, ev in df_hist.iterrows():
+            t_color = "#ef4444" if ev["type"] == "地震" else ("#3b82f6" if ev["type"] == "颱風" else "#eab308")
+
+            # 點擊事件名稱直接前往氣象署，或透過按鈕選擇
+            st.markdown(f"""
+            <div class="mobile-card" style="border-left: 8px solid {t_color}; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                <a href="{cwa_url}" target="_blank" style="text-decoration:none; color:inherit; display:block;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:1.1rem; font-family:monospace; font-weight:800; color:#94a3b8;">📅 {ev['date']}</span>
+                        <span style="background:{t_color}; color:#ffffff; font-weight:900; font-size:0.9rem; padding:3px 10px; border-radius:99px;">{ev['type']}｜{ev['region']}</span>
+                    </div>
+                    <div style="font-size:1.35rem; font-weight:900; color:#38bdf8; margin: 8px 0; text-decoration:underline;">
+                        {ev['name']} ↗
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                        <span style="background:#0f172a; padding:4px 10px; border-radius:8px; font-size:0.95rem; font-weight:700; color:#fca5a5;">震度：{ev['max_seismic']}</span>
+                        <span style="background:#0f172a; padding:4px 10px; border-radius:8px; font-size:0.95rem; font-weight:700; color:#38bdf8;">3hr雨量：{ev['max_rain_3h']}mm</span>
+                        <span style="background:#0f172a; padding:4px 10px; border-radius:8px; font-size:0.95rem; font-weight:700; color:#fbbf24;">48hr雨量：{ev['max_rain_48h']}mm</span>
+                    </div>
+                    <div style="font-size:1.05rem; color:#e2e8f0; line-height:1.4; margin-bottom:12px;">
+                        📌 {ev['note']}
+                    </div>
+                </a>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
+                    <a href="{cwa_url}" target="_blank" class="link-btn">
+                        🔍 中央氣象署 (CWA)
+                    </a>
+                    <a href="{ncdr_url}" target="_blank" class="link-btn-sec">
+                        🌪️ NCDR 災防科技中心
+                    </a>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # ==================================================
+    # 模組 3：邊坡巡查自動化派工決策
+    # ==================================================
+    elif main_menu.startswith("⚙️ 3"):
         drive_mode = st.selectbox(
             "⚡ 1. 下拉選擇外力觸發來源：",
             [
@@ -718,72 +762,6 @@ def render_app():
                 <div class="sop-mgmt-box">
                     <div style="font-size:0.85rem; color:#a7f3d0; margin-bottom:2px;">🛡️ 防災管制與養護機制：</div>
                     {res['management']}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    # ==================================================
-    # 模組 3：宜花歷年天災時序查詢 (精準雙連結配置)
-    # ==================================================
-    elif main_menu.startswith("📅 3"):
-        df_hist = st.session_state.disaster_db.copy()
-        df_hist["year"] = df_hist["date"].str.slice(0, 4)
-
-        c1, c2 = st.columns(2)
-        sel_year = c1.selectbox("📅 1. 下拉選擇查詢年份：", ["全部歷年紀錄"] + sorted(df_hist["year"].unique().tolist(), reverse=True))
-        sel_type = c2.selectbox("🌪️ 2. 下拉選擇災害類別：", ["全部災別 (地震/颱風/豪雨)", "地震", "颱風", "豪雨"])
-        
-        c3, c4 = st.columns(2)
-        sel_reg_h = c3.selectbox("📍 3. 下拉篩選受災分區：", ["全部宜花防區"] + list(REGIONAL_GROUPS.keys()))
-        sort_dir = c4.selectbox("⏳ 4. 日期排序方式：", ["日期：由新到舊 (最新優先)", "日期：由舊到新 (時間先後順序)"])
-
-        if sel_year != "全部歷年紀錄":
-            df_hist = df_hist[df_hist["year"] == sel_year]
-        if sel_type != "全部災別 (地震/颱風/豪雨)":
-            df_hist = df_hist[df_hist["type"] == sel_type]
-        if sel_reg_h != "全部宜花防區":
-            df_hist = df_hist[df_hist["region"] == sel_reg_h]
-
-        df_hist = df_hist.sort_values(by="date", ascending=("由舊到新" in sort_dir))
-
-        st.markdown(f"#### 📖 查詢結果：共 {len(df_hist)} 筆宜花天災事件")
-        for _, ev in df_hist.iterrows():
-            t_color = "#ef4444" if ev["type"] == "地震" else ("#3b82f6" if ev["type"] == "颱風" else "#eab308")
-            
-            # 取得該事件的精準報告連結與氣象署資料庫連結
-            primary_url, cwa_db_url, db_btn_label = build_event_links(
-                ev_type=ev["type"],
-                ev_date=ev["date"],
-                ev_name=ev["name"],
-                ev_region=ev["region"]
-            )
-
-            st.markdown(f"""
-            <div class="mobile-card" style="border-left: 8px solid {t_color}; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-                <a href="{primary_url}" target="_blank" style="text-decoration:none; color:inherit; display:block;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:1.1rem; font-family:monospace; font-weight:800; color:#94a3b8;">📅 {ev['date']}</span>
-                        <span style="background:{t_color}; color:#ffffff; font-weight:900; font-size:0.9rem; padding:3px 10px; border-radius:99px;">{ev['type']}｜{ev['region']}</span>
-                    </div>
-                    <div style="font-size:1.35rem; font-weight:900; color:#38bdf8; margin: 8px 0; text-decoration:underline;">
-                        {ev['name']} ↗
-                    </div>
-                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-                        <span style="background:#0f172a; padding:4px 10px; border-radius:8px; font-size:0.95rem; font-weight:700; color:#fca5a5;">震度：{ev['max_seismic']}</span>
-                        <span style="background:#0f172a; padding:4px 10px; border-radius:8px; font-size:0.95rem; font-weight:700; color:#38bdf8;">3hr雨量：{ev['max_rain_3h']}mm</span>
-                        <span style="background:#0f172a; padding:4px 10px; border-radius:8px; font-size:0.95rem; font-weight:700; color:#fbbf24;">48hr雨量：{ev['max_rain_48h']}mm</span>
-                    </div>
-                    <div style="font-size:1.05rem; color:#e2e8f0; line-height:1.4; margin-bottom:12px;">
-                        📌 {ev['note']}
-                    </div>
-                </a>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
-                    <a href="{primary_url}" target="_blank" class="link-btn">
-                        🔍 查閱該次災情與氣象報告
-                    </a>
-                    <a href="{cwa_db_url}" target="_blank" class="link-btn-sec">
-                        {db_btn_label}
-                    </a>
                 </div>
             </div>
             """, unsafe_allow_html=True)
