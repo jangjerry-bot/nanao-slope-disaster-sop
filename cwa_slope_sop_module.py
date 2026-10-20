@@ -9,7 +9,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==========================================
-# 0. 動態雷達視覺橫幅與手機端高可視性 CSS
+# 0. 動態雷達視覺橫幅與手機端高可視性 CSS (已修正心跳列背景與文字對比)
 # ==========================================
 def inject_custom_style_and_banner():
     st.markdown("""
@@ -50,10 +50,6 @@ def inject_custom_style_and_banner():
             0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.85); transform: scale(0.95); }
             70% { box-shadow: 0 0 0 14px rgba(16, 185, 129, 0); transform: scale(1.05); }
             100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); transform: scale(0.95); }
-        }
-        @keyframes slideDownFade {
-            0% { opacity: 0; transform: translateY(-18px); }
-            100% { opacity: 1; transform: translateY(0); }
         }
         @keyframes scanLine {
             0% { transform: translateX(-100%); }
@@ -119,6 +115,37 @@ def inject_custom_style_and_banner():
             padding: 10px 14px;
             border-radius: 10px;
             border-left: 4px solid #38bdf8;
+        }
+
+        /* 修正後的心跳監視列樣式 (強制深色背景與高對比亮綠/白字，徹底解決白底看不清楚問題) */
+        .heartbeat-bar-ok {
+            background: linear-gradient(135deg, #1e293b, #064e3b) !important;
+            border: 2px solid #10b981 !important;
+            border-radius: 12px !important;
+            padding: 12px 16px !important;
+            font-size: 1.05rem !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.4) !important;
+            margin-bottom: 10px !important;
+        }
+        .heartbeat-bar-ok code {
+            background: rgba(15, 23, 42, 0.9) !important;
+            color: #34d399 !important;
+            padding: 2px 6px !important;
+            border-radius: 4px !important;
+            font-weight: 800 !important;
+        }
+        .heartbeat-bar-err {
+            background: linear-gradient(135deg, #1e293b, #451a03) !important;
+            border: 2px solid #ef4444 !important;
+            border-radius: 12px !important;
+            padding: 12px 16px !important;
+            font-size: 1.05rem !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.4) !important;
+            margin-bottom: 10px !important;
         }
 
         /* 手機端重點放大卡片 */
@@ -241,7 +268,6 @@ DEFAULT_DISASTER_HISTORY = [
     {"date": "2016-09-27", "type": "颱風", "name": "梅姬颱風蘇花全線超大豪雨", "max_seismic": "0級", "max_rain_3h": 175.0, "max_rain_48h": 710.0, "region": "蘇澳地區", "collapse_m3": 18000, "note": "蘇花公路多處大型坍方，原B、C級致災邊坡全面強制升級比照A級管理"},
 ]
 
-# 預設展示資料庫：直接採用「路線 + 里程樁號(起)～里程樁號(迄)」之格式
 DEFAULT_SLOPE_INVENTORY = [
     {"邊坡編號": "台9線 108k+500～108k+650", "路段名稱": "蘇澳東澳段", "所屬雨量分區": "蘇澳地區", "邊坡分級": "C", "分級定義摘述": "5年內有災、後續無明顯不穩", "RHRS中高風險": "否", "復建完工日": "2022-10-01", "具遠端致災因素": "否"},
     {"邊坡編號": "台9線 114k+200～114k+450", "路段名稱": "東澳段", "所屬雨量分區": "東澳地區", "邊坡分級": "A", "分級定義摘述": "2年內有災已完成復建(待汛期後檢討降等)", "RHRS中高風險": "是", "復建完工日": "2025-04-15", "具遠端致災因素": "是"},
@@ -528,12 +554,11 @@ def render_app():
                 sh = st.selectbox("選擇工作表", xl.sheet_names)
                 raw_df = xl.parse(sh)
 
-        # ====== 南澳邊坡全生命週期資料庫 原生解析引擎 ======
+        # ====== 南澳邊坡全生命週期資料庫 原生解析引擎（精準對應里程樁號與定性分級） ======
         if raw_df is not None and not raw_df.empty:
             cols = raw_df.columns.tolist()
-            # 自動偵測是否具備標準欄位
             if all(k in cols for k in ["路線", "里程樁號(起)", "里程樁號(迄)", "定性分級"]):
-                st.info("✅ 偵測到「邊坡資料」標準格式，系統將自動提取 定性分級 與 里程區間。")
+                st.info("✅ 偵測到「南澳邊坡資料」標準格式，系統將自動提取 定性分級 與 里程樁號區間。")
                 if st.button("📥 一鍵套用至邊坡決策系統", use_container_width=True):
                     mapped = []
                     for _, r in raw_df.iterrows():
@@ -545,7 +570,7 @@ def render_app():
                         if grade == "nan" or route == "nan":
                             continue
                             
-                        # 將邊坡編號格式化為「路線 里程(起)～里程(迄)」
+                        # 完美對應您要求的 UI 格式：「路線 里程樁號(起)～里程樁號(迄) (附近地名)」
                         s_id = f"{route} {m_start}～{m_end}"
                         loc_name = str(r.get("附近地名", "")).strip()
                         if loc_name == "nan": loc_name = ""
@@ -554,16 +579,15 @@ def render_app():
                             "邊坡編號": s_id,
                             "路段名稱": loc_name,
                             "所屬雨量分區": auto_assign_region_by_text(f"{route} {loc_name} {r.get('鄉鎮市區', '')}"),
-                            "邊坡分級": grade, # 對應「定性分級」
-                            "分級定義摘述": str(r.get("現地狀況描述", ""))[:30] + "..." if r.get("現地狀況描述") else "由Excel邊坡資料庫匯入",
+                            "邊坡分級": grade, # 直接對應 Excel 的「定性分級」 (A, B, C, D 等)
+                            "分級定義摘述": str(r.get("現地狀況描述", ""))[:30] + "..." if r.get("現地狀況描述") else "由南澳邊坡資料庫匯入",
                             "RHRS中高風險": "是" if any(g in grade for g in ["A", "B"]) else "否",
                             "復建完工日": "", 
                             "具遠端致災因素": "是" if "C+" in grade else "否"
                         })
                     st.session_state.slope_db = pd.DataFrame(mapped)
-                    st.success(f"已成功載入 {len(mapped)} 筆邊坡口卡！")
+                    st.success(f"已成功載入 {len(mapped)} 筆南澳邊坡口卡！")
             else:
-                # 傳統手動映射
                 c_id = st.selectbox("【邊坡編號】欄", cols, index=0)
                 c_loc = st.selectbox("【路段名稱】欄", cols, index=min(1, len(cols)-1))
                 c_grade = st.selectbox("【邊坡分級】欄", cols, index=min(2, len(cols)-1))
@@ -584,24 +608,19 @@ def render_app():
     df_stations, df_envelope, api_meta = fetch_cwa_rainfall_and_envelope(api_key)
     eq_records = fetch_cwa_earthquake(api_key)
 
-    col_hb1, col_hb2 = st.columns([3, 1])
-    with col_hb1:
-        if api_meta["ok"]:
-            st.markdown(f"""
-            <div style="background:rgba(16,185,129,0.15); border:1px solid #10b981; border-radius:10px; padding:8px 14px; font-size:0.92rem; color:#a7f3d0; font-weight:700;">
-                🟢 <b>CWA 氣象署 API 即時連線正常</b>｜最新觀測時間：<code>{api_meta['latest_obs_time']}</code>｜已同步宜花 <b>{api_meta['station_count']}</b> 座雨量站
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(f"""
-            <div style="background:rgba(239,68,68,0.2); border:1px solid #ef4444; border-radius:10px; padding:8px 14px; font-size:0.92rem; color:#fca5a5; font-weight:700;">
-                🔴 <b>CWA API 連線異常</b> ({api_meta['error']})｜請點右側按鈕重新抓取或展開左上角檢查金鑰
-            </div>
-            """, unsafe_allow_html=True)
-    with col_hb2:
-        if st.button("🔄 立即抓最新雨量", use_container_width=True):
-            st.cache_data.clear()
-            st.rerun()
+    # 頂部即時連線心跳狀態列 (套用美化深色毛玻璃 CSS，解決白底看不清楚問題)
+    if api_meta["ok"]:
+        st.markdown(f"""
+        <div class="heartbeat-bar-ok">
+            🟢 <b>CWA 氣象署 API 即時連線正常</b>｜最新觀測時間：<code>{api_meta['latest_obs_time']}</code>｜已同步宜花 <b>{api_meta['station_count']}</b> 座雨量站
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div class="heartbeat-bar-err">
+            🔴 <b>CWA API 連線異常</b> ({api_meta['error']})｜請檢查左側授權碼或點擊下方按鈕重試
+        </div>
+        """, unsafe_allow_html=True)
 
     main_menu = st.selectbox(
         "👇 請選擇功能模組 (下拉切換)：",
@@ -684,7 +703,7 @@ def render_app():
         """, unsafe_allow_html=True)
 
     # ==================================================
-    # 模組 2：近10年宜花天災時序溯源查詢 (災別動態分流路由)
+    # 模組 2：近10年宜花天災時序溯源查詢
     # ==================================================
     elif main_menu.startswith("📅 2"):
         df_hist = st.session_state.disaster_db.copy()
@@ -718,7 +737,6 @@ def render_app():
             yr = ev['date'][:4]
             t_color = "#ef4444" if ev_type == "地震" else ("#3b82f6" if ev_type == "颱風" else "#eab308")
 
-            # 依據災別動態跳轉至對應之官方專屬資料庫，避免走 Google
             if ev_type == "颱風":
                 cwa_url = "https://rdc28.cwa.gov.tw/TDB/public/warning_typhoon_list/"
                 cwa_label = f"🌀 氣象署 {yr} 颱風資料庫"
@@ -729,7 +747,7 @@ def render_app():
                 cwa_label = f"🌋 氣象署 {yr} 歷史地震"
                 ncdr_url = "https://den.ncdr.nat.gov.tw/"
                 ncdr_label = f"📊 NCDR {yr} 災防大數據"
-            else: # 豪雨
+            else:
                 cwa_url = "https://codis.cwa.gov.tw/StationData"
                 cwa_label = f"🌧️ 氣象署 CODiS 歷史雨量"
                 ncdr_url = "https://watch.ncdr.nat.gov.tw/"
@@ -784,7 +802,7 @@ def render_app():
             "🔧 請選擇欲執行之邊坡管理決策作業：",
             [
                 "作業 A：【邊坡檢查派工決策】依據即時氣象或歷史災變，決定各級邊坡應做何種檢查",
-                "作業 B：【A級邊坡降等檢核】依據 1155009531 號函，檢核復建邊坡汛期考驗與調降 C+/C 級資格"
+                "作業 B：【A級邊坡降等檢核】依據 1155009531 號函，篩選與評估 A 級邊坡降回 C/C+ 資格"
             ]
         )
 
@@ -891,65 +909,85 @@ def render_app():
                         <div style="font-size:0.85rem; color:#94a3b8; margin-bottom:2px;">🔍 應執行之邊坡巡查 / 特別檢測項目：</div>
                         {res['inspection']}
                     </div>
+                    <div style="font-size:0.85rem; color:#a7f3d0; margin-bottom:2px;">🛡️ 防災管制與 1155009531號函 分級管理作為：</div>
                     <div class="sop-mgmt-box">
-                        <div style="font-size:0.85rem; color:#a7f3d0; margin-bottom:2px;">🛡️ 防災管制與 1155009531號函 分級管理作為：</div>
                         {res['management']}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
 
         else:
-            # 作業 B：A級邊坡降等檢核
-            # 依據使用者需求，精準過濾 "定性分級"(已對應為"邊坡分級") 中包含 A 的邊坡口卡
-            a_slopes = st.session_state.slope_db[st.session_state.slope_db["邊坡分級"].astype(str).str.contains("A", case=False)]
-            
-            # 依照「路線 里程(起)～里程(迄) (附近地名)」格式組裝下拉選單
-            slope_opts = []
-            for _, r in a_slopes.iterrows():
-                opt_str = r['邊坡編號']
-                if pd.notna(r.get('路段名稱')) and r['路段名稱'] != "":
-                    opt_str += f" ({r['路段名稱']})"
-                slope_opts.append(opt_str)
-                
-            slope_opts.append("自訂評估邊坡")
-            
-            st.selectbox("⛰️ 1. 下拉選擇欲評估降等之 A 級邊坡 (自動抓取 Excel 定性分級)：", slope_opts)
-
-            c1, c2 = st.columns(2)
-            rehab_dt = c1.date_input("2. 復建工程完工日", value=date(2025, 4, 15))
-            eval_dt = c2.date_input("3. 提報審查日 (須於11/30汛期結束後)", value=date(2026, 12, 5))
-
-            remote_opt = st.selectbox(
-                "🔍 4. C+級邊坡快篩調查表 (是否具4類遠端致災因素)：",
-                [
-                    "是：具遠端致災因素 (需持續關注上/下邊坡、曲流/浪襲攻擊面、坡頂人為開發、明隧道上方邊坡)",
-                    "否：無上述4種遠端致災因素，且後續無明顯不穩定徵兆"
-                ]
-            )
-
-            full_seasons = [y for y in range(rehab_dt.year, eval_dt.year + 1) if rehab_dt <= date(y, 5, 1) and eval_dt > date(y, 11, 30)]
-            df_h = st.session_state.disaster_db.copy()
-            df_h["dt"] = pd.to_datetime(df_h["date"]).dt.date
-            exp_ev = df_h[(df_h["dt"] >= rehab_dt) & (df_h["dt"] <= eval_dt)]
-            max_48 = exp_ev["max_rain_48h"].max() if not exp_ev.empty else 0.0
-
-            is_qualified = (len(full_seasons) >= 1) and not (5 <= eval_dt.month <= 11)
-            target_g = "C+ 級邊坡" if remote_opt.startswith("是") else "C 級邊坡"
-
-            st.markdown(f"""
-            <div class="mobile-card {'card-safe' if is_qualified else 'card-danger'}">
-                <div style="font-size:1.1rem; color:#94a3b8;">路養護字第1155009531號函 降等資格暨自然外力壓力測試判定：</div>
-                <div class="big-number" style="color:{'#6ee7b7' if is_qualified else '#fca5a5'}; margin:8px 0;">
-                    {'✅ 符合資格 ➔ 可提報專家會議調降至 ' + target_g if is_qualified else '❌ 尚未符合降等法定啟動時機'}
-                </div>
-                <div style="font-size:1.05rem; color:#ffffff; line-height:1.6;">
-                    • 完整經歷汛期數：<b>{len(full_seasons)} 個</b> ({full_seasons if full_seasons else '未滿1個完整汛期 5/1~11/30'})<br>
-                    • 完工後經歷天災次數：<b>{len(exp_ev)} 次</b><br>
-                    • 期間承受最大 48hr 雨量：<b>{max_48} mm</b> ({'已通過 350mm 豪雨壓力測試' if max_48>=350 else '期間未達 350mm 門檻'})<br>
-                    • 應備齊審查資料：<b>(1) 致災原因之探討 (2) 削減措施說明 (3) 可降等之理由(含安定分析、影像判釋及照片)</b>
+            # ==================================================
+            # 作業 B：【A級邊坡降等檢核】完全對應南澳邊坡資料庫格式
+            # ==================================================
+            st.markdown("#### 📉 115年5月修訂：A級邊坡降回 C / C+ 級資格檢核與篩選中心")
+            st.markdown("""
+            <div class="mobile-card card-safe">
+                <div style="font-size:1rem; color:#e2e8f0; line-height:1.5;">
+                    本模組專門用於篩選與評估轄區內列管之 <b>A 級邊坡</b>。系統會自動抓取您上傳的南澳邊坡資料庫中「定性分級為 A」之口卡，並以<b>【路線 里程樁號(起)～里程樁號(迄)】</b>格式呈現。經壓力測試符合條件後，即可提報專家會議調降至 <b>C+級</b>（具4類遠端致災因素）或 <b>C級</b>。
                 </div>
             </div>
             """, unsafe_allow_html=True)
+
+            # 精準過濾定性分級包含 A 的邊坡
+            a_slopes = st.session_state.slope_db[st.session_state.slope_db["邊坡分級"].astype(str).str.contains("A", case=False)]
+            
+            if a_slopes.empty:
+                st.warning("⚠️ 目前資料庫中沒有檢索到定性分級為 A 的邊坡口卡，請確認左側邊欄是否已成功上傳並套用「南澳邊坡資料.xlsx」。")
+            else:
+                # 建立下拉選項：路線 里程樁號(起)～里程樁號(迄) (附近地名)
+                slope_opts = []
+                for _, r in a_slopes.iterrows():
+                    opt_str = r['邊坡編號']
+                    if pd.notna(r.get('路段名稱')) and r['路段名稱'] != "":
+                        opt_str += f" ({r['路段名稱']})"
+                    slope_opts.append(opt_str)
+
+                sel_slope_card = st.selectbox("⛰️ 1. 下拉選擇欲評估降等之 A 級邊坡口卡：", slope_opts)
+                
+                # 取得選中邊坡的詳細資訊
+                selected_row = a_slopes.iloc[slope_opts.index(sel_slope_card)]
+
+                c_info1, c_info2 = st.columns(2)
+                c_info1.markdown(f"**📍 里程區間**：`{selected_row['邊坡編號']}`")
+                c_info2.markdown(f"**📌 附近地名/路段**：`{selected_row.get('路段名稱', '未填寫')}`")
+
+                c1, c2 = st.columns(2)
+                rehab_dt = c1.date_input("2. 復建工程完工日", value=date(2025, 4, 15))
+                eval_dt = c2.date_input("3. 提報審查日 (須於11/30汛期結束後)", value=date(2026, 12, 5))
+
+                remote_opt = st.selectbox(
+                    "🔍 4. C+級邊坡快篩調查表 (是否具4類遠端致災因素)：",
+                    [
+                        "是：具遠端致災因素 (需持續關注上/下邊坡、曲流/浪襲攻擊面、坡頂人為開發、明隧道上方邊坡) ➔ 應調降至 C+ 級",
+                        "否：無上述4種遠端致災因素，且後續無明顯不穩定徵兆 ➔ 應調降至 C 級"
+                    ]
+                )
+
+                full_seasons = [y for y in range(rehab_dt.year, eval_dt.year + 1) if rehab_dt <= date(y, 5, 1) and eval_dt > date(y, 11, 30)]
+                df_h = st.session_state.disaster_db.copy()
+                df_h["dt"] = pd.to_datetime(df_h["date"]).dt.date
+                exp_ev = df_h[(df_h["dt"] >= rehab_dt) & (df_h["dt"] <= eval_dt)]
+                max_48 = exp_ev["max_rain_48h"].max() if not exp_ev.empty else 0.0
+
+                is_qualified = (len(full_seasons) >= 1) and not (5 <= eval_dt.month <= 11)
+                target_g = "C+ 級邊坡" if "具遠端致災因素" in remote_opt else "C 級邊坡"
+
+                st.markdown(f"""
+                <div class="mobile-card {'card-safe' if is_qualified else 'card-danger'}">
+                    <div style="font-size:1.1rem; color:#94a3b8;">路養護字第1155009531號函 降等資格暨自然外力壓力測試判定：</div>
+                    <div class="big-number" style="color:{'#6ee7b7' if is_qualified else '#fca5a5'}; margin:8px 0;">
+                        {'✅ 符合資格 ➔ 可提報專家會議調降至 ' + target_g if is_qualified else '❌ 尚未符合降等法定啟動時機'}
+                    </div>
+                    <div style="font-size:1.05rem; color:#ffffff; line-height:1.6;">
+                        • 評估目標邊坡：<b>{sel_slope_card}</b><br>
+                        • 完整經歷汛期數：<b>{len(full_seasons)} 個</b> ({full_seasons if full_seasons else '未滿1個完整汛期 5/1~11/30'})<br>
+                        • 完工後經歷天災次數：<b>{len(exp_ev)} 次</b><br>
+                        • 期間承受最大 48hr 雨量：<b>{max_48} mm</b> ({'已通過 350mm 豪雨壓力測試' if max_48>=350 else '期間未達 350mm 門檻'})<br>
+                        • 應備齊審查佐證資料：<b>(1) 致災原因之探討 (2) 削減措施說明 (3) 可降等之理由(含安定分析、影像判釋及照片)</b>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     render_app()
